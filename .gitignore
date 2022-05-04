@@ -7,3 +7,5 @@ target/
 .metals
 metals.sbt
 .vscode
+*.class
+*.log
