@@ -12,10 +12,7 @@ DROP TABLE IF EXISTS Users;
 
 CREATE TABLE Buildings (
     id SERIAL PRIMARY KEY,
-    city text NOT NULL,
-    address text NOT NULL,
-    name text NOT NULL,
-    description text
+    address text UNIQUE
 );
 
 CREATE TABLE Users (
@@ -36,7 +33,7 @@ CREATE TABLE Premises (
     number text NOT NULL,
     area numeric(10, 1) NOT NULL,
     description text,
-    advertised_price money NOT NULL CHECK(advertised_price > 0::money),
+    advertised_price INT NOT NULL CHECK(advertised_price > 0),
     CONSTRAINT unq_space UNIQUE (building_id, floor, number)
 );
 
@@ -65,3 +62,20 @@ CREATE TABLE PremisesInContracts (
         daterange(start_dt, end_dt, '[]') WITH &&
     )
 );
+
+INSERT INTO Users (
+    first_name,
+    last_name,
+    email,
+    phone,
+    passwd,
+    role
+  )
+VALUES (
+    "John",
+    "De Goes",
+    "degoes@example.com",
+    "2223322",
+    "password",
+    "landlord"
+  )

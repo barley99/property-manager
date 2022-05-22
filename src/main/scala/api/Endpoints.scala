@@ -1,10 +1,94 @@
 package api
 
-import domain.{Contract, Premise, User}
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
+import db.PremiseRepository
+import domain.{Building, Contract, Premise, User}
+import sttp.model.StatusCode._
 import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe._
 import sttp.tapir.openapi.Info
+
+import scala.concurrent.{ExecutionContext, Future}
+
+class PremisesEndpoints(db: PremiseRepository[IO], basePath: String)(implicit ec: ExecutionContext) {
+
+//  implicit lazy val sBuilding: Schema[Building] = Schema.derived
+//  implicit lazy val sPremise: Schema[Premise]   = Schema.derived
+
+  // List available buildings: GET /api/buildings
+  private val listBuildingsEndpoint =
+    endpoint.get
+      .in(basePath / "premises" / "buildings")
+      .in(query[Option[String]]("addresslike"))
+      .out(jsonBody[List[Building]])
+      .errorOut(stringBody)
+      .serverLogic[Future](address => db.listBuildings(address).compile.toList.unsafeToFuture().map(Right(_)))
+      .description("Get list of buildings with optional filtering by susbstring")
+
+  // Add Premise: POST /api/premises
+  private val newPremiseEndpoint =
+    endpoint.post
+      .in(basePath / "premises")
+      .in(jsonBody[Premise].description("Info about new premise and building where it's located"))
+      .errorOut(stringBody)
+      .serverLogic[Future](item =>
+        db.create(item).unsafeToFuture().map(Right(_))
+      )
+      .description("Create new premise record")
+
+  // Get Premise: GET /api/premise/{id}
+  private val getPremiseEndpoint =
+    endpoint.get
+      .in(basePath / "premise" / path[Long]("id").description("Premise ID"))
+      .out(jsonBody[Premise])
+      .errorOut(stringBody)
+      .serverLogic[Future](id => db.get(id).unsafeToFuture().map(_.toRight(NotFound.toString())))
+      .description("Get info about premise by id")
+
+  // Update Premise: PUT /api/premise/{id}
+  private val updatePremiseEndpoint =
+    endpoint.patch
+      .in(basePath / "premise" / path[Long]("id").description("Premise ID"))
+      .in(jsonBody[Premise])
+      .errorOut(stringBody)
+      .serverLogic[Future] { case (id, item) => db.update(id, item).unsafeToFuture().map(Right(_)) }
+      .description("Update premise by id")
+
+  // List Premises: GET /api/premises
+  // List Premises: GET /api/premises?areamin=15&areamax=25
+  // List Premises: GET /api/premises?address=Тюленина, 100
+  // List Premises: GET /api/premises?totalpricemin=10000&totalpricemax=20000
+  // List Premises available for lease: GET /api/premises?available=true
+  //          / query[Int]("areamin").description("Minimal area of filtered premises")
+  //          / query[Int]("areamax").description("Maximal area of filtered premises")
+  //          / query[Int]("totalpricemin").description("Minimal price per month of filtered premises")
+  //          / query[Int]("totalpricemax").description("Maximal price per month of filtered premises")
+  //          / query[Boolean]("isavailaible").default(true).description("Premises are available for lease")
+  //          / query[String]("address").description("Substring of address of building")
+
+  private val listPremisesEndpoint =
+    endpoint.get
+      .in(basePath / "premises")
+      .in(query[Boolean]("isavailable").default(true).description(
+        "Premises are available for lease in next 1 month or longer"
+      ))
+      .in(query[Option[String]]("address").description("Substring of address of building"))
+      .in(query[Option[Int]]("areamin").description("Minimal area of filtered premises"))
+      .in(query[Option[Int]]("areamax").description("Maximal area of filtered premises"))
+      .in(query[Option[Int]]("totalpricemin").description("Minimal price per month of filtered premises"))
+      .in(query[Option[Int]]("totalpricemax").description("Maximal price per month of filtered premises"))
+      .out(jsonBody[List[Premise]])
+      .errorOut(stringBody)
+      .serverLogic[Future] { queryParams =>
+        (db.list _).tupled(queryParams).compile.toList.unsafeToFuture().map(Right(_))
+      }
+      .description("Get list of premises with filtering")
+
+  val allEndpoints =
+    List(listBuildingsEndpoint, newPremiseEndpoint, getPremiseEndpoint, updatePremiseEndpoint, listPremisesEndpoint)
+}
 
 class Endpoints {
 
@@ -40,50 +124,6 @@ class Endpoints {
       .in(jsonBody[User])
       .errorOut(stringBody)
       .description("Update user info by id, changed phone number for example")
-
-  // Add Premise: POST /api/premises
-  private val newPremiseEndpoint =
-    endpoint.post
-      .in(basePath / "premises")
-      .in(jsonBody[Premise].description("Info about new premise and building where it's located"))
-      .errorOut(stringBody)
-      .description("Create new premise record")
-
-  // Get Premise: GET /api/premise/{id}
-  private val getPremiseEndpoint =
-    endpoint.get
-      .in(basePath / "premise" / path[Long]("id").description("Premise ID"))
-      .out(jsonBody[Premise])
-      .errorOut(stringBody)
-      .description("Get info about premise by id")
-
-  // Update Premise: PUT /api/premise/{id}
-  private val updatePremiseEndpoint =
-    endpoint.patch
-      .in(basePath / "premise" / path[Long]("id").description("Premise ID"))
-      .in(jsonBody[Premise])
-      .errorOut(stringBody)
-      .description("Update premise by id")
-
-  // List Premises: GET /api/premises
-  // List Premises: GET /api/premises?areamin=15&areamax=25
-  // List Premises: GET /api/premises?address=Тюленина, 100
-  // List Premises: GET /api/premises?totalpricemin=10000&totalpricemax=20000
-  // List Premises available for lease: GET /api/premises?available=true
-  private val listPremisesEndpoint =
-    endpoint.get
-      .in(
-        basePath / "premises"
-          / query[Int]("areamin").description("Minimal area of filtered premises")
-          / query[Int]("areamax").description("Maximal area of filtered premises")
-          / query[Int]("totalpricemin").description("Minimal price per month of filtered premises")
-          / query[Int]("totalpricemax").description("Maximal price per month of filtered premises")
-          / query[Boolean]("isavailaible").default(true).description("Premises are available for lease")
-          / query[String]("address").description("Substring of address of building")
-      )
-      .out(jsonBody[List[Premise]])
-      .errorOut(stringBody)
-      .description("Get list of premises with filtering")
 
   // Add Contract: POST /api/contracts
   private val newContractEndpoint =

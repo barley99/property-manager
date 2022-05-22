@@ -1,7 +1,10 @@
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import api.Endpoints
+import cats.effect.IO
+import api.{Endpoints, PremisesEndpoints}
 import com.typesafe.scalalogging.LazyLogging
+import db.DoobiePremiseRepository
+import doobie.Transactor
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
 import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
@@ -14,13 +17,21 @@ object EndpointsServer extends LazyLogging {
     implicit val system = ActorSystem()
     implicit val es     = system.dispatcher
 
-    val service = new Endpoints
+    val xa = Transactor.fromDriverManager[IO](
+      "org.postgresql.Driver",
+      "jdbc:postgresql://localhost/postgres",
+      "postgres",
+      "postgres"
+    )
+
+    val repository = new DoobiePremiseRepository[IO](xa)
+    val service    = new PremisesEndpoints(repository, "api")
 
     val routes = AkkaHttpServerInterpreter().toRoute(service.allEndpoints)
     val openApi = OpenAPIDocsInterpreter().serverEndpointsToOpenAPI(
       service.allEndpoints,
-      "coffee server",
-      "0.0.1"
+      "Property Management Server",
+      "0.1"
     )
 
     val swagger =

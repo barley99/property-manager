@@ -5,15 +5,13 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 final case class Premise(
     id: Option[Long],
-    city: String,
     address: String,
-    buildingName: String,
-    landlordName: String,
+    landlordId: Long,
     floor: Int,
     number: String,
     area: Double,
     description: Option[String],
-    advertisedPrice: Double
+    advertisedPrice: Int
 )
 
 object Premise {
