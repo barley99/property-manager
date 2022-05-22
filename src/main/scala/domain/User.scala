@@ -3,7 +3,7 @@ package domain
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
 
-case class User(
+final case class User(
     id: Option[Long],
     firstName: String,
     lastName: String,

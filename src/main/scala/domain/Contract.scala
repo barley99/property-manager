@@ -1,7 +1,7 @@
 package domain
 
-import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.{Decoder, Encoder}
 
 import java.time.LocalDate
 
@@ -14,7 +14,7 @@ final case class Contract(
     endDate: LocalDate,
     paymentDate: LocalDate,
     utilitiesInPrice: Boolean,
-    premisesPrices: List[(Long, Double)] // (id, price)
+    premisesPrices: Option[List[(Long, Double)]] // (id, price)
 )
 
 object Contract {

@@ -1,9 +1,9 @@
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import cats.effect.IO
-import api.{Endpoints, PremisesEndpoints, UsersEndpoints}
+import api.{ContractsEndpoints, PremisesEndpoints, UsersEndpoints}
 import com.typesafe.scalalogging.LazyLogging
-import db.{DoobiePremiseRepository, DoobieUserRepository}
+import db.{DoobieContractRepository, DoobiePremiseRepository, DoobieUserRepository}
 import doobie.Transactor
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.openapi.circe.yaml.RichOpenAPI
@@ -24,14 +24,19 @@ object EndpointsServer extends LazyLogging {
       "postgres"
     )
 
-    val premisesRepository = new DoobiePremiseRepository[IO](xa)
-    val premisesService    = new PremisesEndpoints(premisesRepository, "api")
-    val usersRepository    = new DoobieUserRepository[IO](xa)
-    val usersService       = new UsersEndpoints(usersRepository, "api")
+    val basePath            = "api"
+    val premisesRepository  = new DoobiePremiseRepository[IO](xa)
+    val premisesService     = new PremisesEndpoints(premisesRepository, basePath)
+    val usersRepository     = new DoobieUserRepository[IO](xa)
+    val usersService        = new UsersEndpoints(usersRepository, basePath)
+    val contractsRepository = new DoobieContractRepository[IO](xa)
+    val contractsService    = new ContractsEndpoints(contractsRepository, basePath)
 
-    val routes = AkkaHttpServerInterpreter().toRoute(premisesService.allEndpoints ++ usersService.allEndpoints)
+    val routes = AkkaHttpServerInterpreter().toRoute(
+      premisesService.allEndpoints ++ usersService.allEndpoints ++ contractsService.allEndpoints
+    )
     val openApi = OpenAPIDocsInterpreter().serverEndpointsToOpenAPI(
-      premisesService.allEndpoints ++ usersService.allEndpoints,
+      premisesService.allEndpoints ++ usersService.allEndpoints ++ contractsService.allEndpoints,
       "Property Management Server",
       "0.1"
     )

@@ -38,11 +38,23 @@ content-type: application/json
 {
 	"address": "Ставрополь, ул. Пушкина, 1",
 	"landlordId": 1,
-    "floor": 3,
-    "number": "303",
-    "area": 16.0,
-    "description": "Помещение с видом на лес",
-    "advertisedPrice": 10000
+  "floor": 3,
+  "number": "303",
+  "area": 16.0,
+  "description": "Помещение с видом на лес",
+  "advertisedPrice": 10000
+}
+###
+POST http://localhost:8080/api/premises
+content-type: application/json
+
+{
+	"address": "Ставрополь, ул. Лермонтова, 1",
+	"landlordId": 1,
+  "floor": 4,
+  "number": "403",
+  "area": 20.0,
+  "advertisedPrice": 12000
 }
 ###
 GET http://localhost:8080/api/premises?isavailable=true
@@ -51,7 +63,21 @@ GET http://localhost:8080/api/premises
 ###
 GET http://localhost:8080/api/premises?areamin=18
 ###
-GET http://localhost:8080/api/premises?isavailable=false&totalpricemax=11000
+GET http://localhost:8080/api/premises?totalpricemax=11000
 ###
 GET http://localhost:8080/api/premise/2
+###
+POST http://localhost:8080/api/contracts
+content-type: application/json
+
+{
+	"number": "б/н",
+	"tenant": 2,
+  "agreementDate": "2022-05-23",
+  "startDate": "2022-06-01",
+  "endDate": "2023-04-30",
+  "paymentDate": "2022-06-01",
+  "utilitiesInPrice": true,
+  "premisesPrices": [[1,10000.0]]
+}
 ###

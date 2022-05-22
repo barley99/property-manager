@@ -52,7 +52,7 @@ CREATE TABLE Contracts (
 CREATE TABLE PremisesInContracts (
     contract_id BIGINT NOT NULL REFERENCES Contracts (id),
     premise_id BIGINT NOT NULL REFERENCES Premises (id),
-    price money NOT NULL CHECK(price > 0::money),
+    price INT NOT NULL CHECK(price > 0),
     start_dt date NOT NULL,
     end_dt date NOT NULL,
     CONSTRAINT end_after_start CHECK (end_dt >= start_dt),
@@ -72,10 +72,10 @@ INSERT INTO Users (
     role
   )
 VALUES (
-    "John",
-    "De Goes",
-    "degoes@example.com",
-    "2223322",
-    "password",
-    "landlord"
-  )
+    'John',
+    'De Goes',
+    'degoes@example.com',
+    '2223322',
+    'password',
+    'landlord'
+  );

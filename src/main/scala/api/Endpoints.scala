@@ -2,13 +2,12 @@ package api
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import db.{PremiseRepository, UserRepository}
+import db.{ContractRepository, PremiseRepository, UserRepository}
 import domain.{Building, Contract, Premise, User}
 import sttp.model.StatusCode._
 import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe._
-import sttp.tapir.openapi.Info
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -96,7 +95,7 @@ class UsersEndpoints(db: UserRepository[IO], basePath: String)(implicit ec: Exec
       .description("Create new user")
 
   // Get Tenant or Landlord: GET /api/user/{id}
-  private val getUserEndpoint =
+  val getUserEndpoint =
     endpoint.get
       .in(basePath / "user" / path[Long]("id").description("User ID"))
       .out(jsonBody[User])
@@ -126,15 +125,7 @@ class UsersEndpoints(db: UserRepository[IO], basePath: String)(implicit ec: Exec
     List(addUserEndpoint, getUserEndpoint, updateUserEndpoint, listUsersEndpoint)
 }
 
-class Endpoints {
-
-  private val info = Info(
-    "Property Management Application - Backend",
-    "0.1",
-  )
-
-  private val basePath = "api"
-//  val docsYaml: String = docs.toYaml
+class ContractsEndpoints(db: ContractRepository[IO], basePath: String)(implicit ec: ExecutionContext) {
 
   // Add Contract: POST /api/contracts
   private val newContractEndpoint =
@@ -142,54 +133,48 @@ class Endpoints {
       .in(basePath / "contracts")
       .in(jsonBody[Contract].description("Info about new contract"))
       .errorOut(stringBody)
+      .serverLogic[Future](db.create(_).unsafeToFuture().map(Right(_)))
       .description("Create new contract record")
 
-  // Get Contract: GET /api/contract/{id}
-  private val getContractEndpoint =
-    endpoint.get
-      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
-      .out(jsonBody[Contract])
-      .errorOut(stringBody)
-      .description("Get info about contract by id")
-
-  // Update Contract: PUT /api/contract/{id}
-  private val updateContractEndpoint =
-    endpoint.patch
-      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
-      .in(jsonBody[Contract])
-      .errorOut(stringBody)
-      .description("Update contract by id")
-
-  // Delete Contract if current date < start_date: DELETE /api/contract/{id}
-  private val deleteContractEndpoint =
-    endpoint.delete
-      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
-      .out(jsonBody[Contract])
-      .errorOut(stringBody)
-      .description("Delete Contract by id if current date less than start_date, otherwise fail")
-
-  // List current contracts: GET /api/contracts
-  private val listContractsEndpoint =
-    endpoint.get
-      .in(basePath / "contracts")
-      .in(query[Boolean]("active").default(true).description("Contracts active on current date"))
-      .in(query[Option[Long]]("tenant").description("Filter by tenant id"))
-      .out(jsonBody[List[Contract]])
-      .errorOut(stringBody)
-      .description("Get list of contracts")
+//  // Get Contract: GET /api/contract/{id}
+//  private val getContractEndpoint =
+//    endpoint.get
+//      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
+//      .out(jsonBody[Contract])
+//      .errorOut(stringBody)
+//      .description("Get info about contract by id")
+//
+//  // Update Contract: PUT /api/contract/{id}
+//  private val updateContractEndpoint =
+//    endpoint.patch
+//      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
+//      .in(jsonBody[Contract])
+//      .errorOut(stringBody)
+//      .description("Update contract by id")
+//
+//  // Delete Contract if current date < start_date: DELETE /api/contract/{id}
+////  private val deleteContractEndpoint =
+////    endpoint.delete
+////      .in(basePath / "contract" / path[Long]("id").description("Contract ID"))
+////      .out(jsonBody[Contract])
+////      .errorOut(stringBody)
+////      .description("Delete Contract by id if current date less than start_date, otherwise fail")
+//
+//  // List current contracts: GET /api/contracts
+//  private val listContractsEndpoint =
+//    endpoint.get
+//      .in(basePath / "contracts")
+//      .in(query[Boolean]("active").default(true).description("Contracts active on current date"))
+//      .in(query[Option[Long]]("tenant").description("Filter by tenant id"))
+//      .out(jsonBody[List[Contract]])
+//      .errorOut(stringBody)
+//      .description("Get list of contracts")
 
   val allEndpoints = List(
-//    addUserEndpoint,
-//    getUserEndpoint,
-//    updateUserInfo,
-//    newPremiseEndpoint,
-//    getPremiseEndpoint,
-//    updatePremiseEndpoint,
-//    listPremisesEndpoint,
-//    newContractEndpoint,
+    newContractEndpoint,
 //    getContractEndpoint,
 //    updateContractEndpoint,
-//    deleteContractEndpoint,
+////    deleteContractEndpoint,
 //    listContractsEndpoint
   )
 

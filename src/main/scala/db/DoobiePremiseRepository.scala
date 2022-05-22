@@ -1,11 +1,9 @@
 package db
 
 import cats.effect.Sync
-import cats.free.Free
 import cats.implicits._
 import domain.{Building, Premise}
 import doobie._
-import doobie.free.connection
 import doobie.implicits._
 import doobie.postgres._
 import fs2.Stream
@@ -55,7 +53,7 @@ class DoobiePremiseRepository[F[_]: Sync](xa: Transactor[F]) extends PremiseRepo
            |INSERT INTO Buildings (address) VALUES ($address)
            |""".stripMargin.update.withUniqueGeneratedKeys[Building]("id", "address")
 
-    def insert(premise: Premise): Free[connection.ConnectionOp, Unit] = {
+    def insert(premise: Premise): ConnectionIO[Unit] = {
       for {
         buildingOption <- getBuildingByAddress(premise.address)
         building       <- buildingOption.fold(insertBuilding(premise.address))(_.pure[ConnectionIO])
@@ -70,7 +68,7 @@ class DoobiePremiseRepository[F[_]: Sync](xa: Transactor[F]) extends PremiseRepo
       } yield ()
     }
 
-    def update(id: Long, premise: Premise): Free[connection.ConnectionOp, Unit] = {
+    def update(id: Long, premise: Premise): ConnectionIO[Unit] = {
       for {
         buildingOption <- getBuildingByAddress(premise.address)
         building       <- buildingOption.fold(insertBuilding(premise.address))(_.pure[ConnectionIO])
@@ -130,7 +128,7 @@ class DoobiePremiseRepository[F[_]: Sync](xa: Transactor[F]) extends PremiseRepo
       }
 
       val whereFragment: Fragment =
-        fr"WHERE (1=1)" ++ frAddress ++ frAreaMin ++ frAreaMax ++ frTotalPriceMin ++ frTotalPriceMax // ++ frAvailable
+        fr"WHERE (1=1)" ++ frAddress ++ frAreaMin ++ frAreaMax ++ frTotalPriceMin ++ frTotalPriceMax ++ frAvailable
 
       val mainFragment = sql"""
              |SELECT P.id, B.address, P.landlord_id, P.floor, P.number, P.area, P.description, P.advertised_price 
