@@ -2,7 +2,7 @@ package api
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import db.PremiseRepository
+import db.{PremiseRepository, UserRepository}
 import domain.{Building, Contract, Premise, User}
 import sttp.model.StatusCode._
 import sttp.tapir._
@@ -61,12 +61,6 @@ class PremisesEndpoints(db: PremiseRepository[IO], basePath: String)(implicit ec
   // List Premises: GET /api/premises?address=Тюленина, 100
   // List Premises: GET /api/premises?totalpricemin=10000&totalpricemax=20000
   // List Premises available for lease: GET /api/premises?available=true
-  //          / query[Int]("areamin").description("Minimal area of filtered premises")
-  //          / query[Int]("areamax").description("Maximal area of filtered premises")
-  //          / query[Int]("totalpricemin").description("Minimal price per month of filtered premises")
-  //          / query[Int]("totalpricemax").description("Maximal price per month of filtered premises")
-  //          / query[Boolean]("isavailaible").default(true).description("Premises are available for lease")
-  //          / query[String]("address").description("Substring of address of building")
 
   private val listPremisesEndpoint =
     endpoint.get
@@ -90,6 +84,48 @@ class PremisesEndpoints(db: PremiseRepository[IO], basePath: String)(implicit ec
     List(listBuildingsEndpoint, newPremiseEndpoint, getPremiseEndpoint, updatePremiseEndpoint, listPremisesEndpoint)
 }
 
+class UsersEndpoints(db: UserRepository[IO], basePath: String)(implicit ec: ExecutionContext) {
+
+  // Registration: POST /api/users
+  private val addUserEndpoint =
+    endpoint.post
+      .in(basePath / "users")
+      .in(jsonBody[User].description("Info for new user registration"))
+      .errorOut(stringBody)
+      .serverLogic[Future](db.create(_).unsafeToFuture().map(Right(_)))
+      .description("Create new user")
+
+  // Get Tenant or Landlord: GET /api/user/{id}
+  private val getUserEndpoint =
+    endpoint.get
+      .in(basePath / "user" / path[Long]("id").description("User ID"))
+      .out(jsonBody[User])
+      .errorOut(stringBody)
+      .serverLogic[Future](db.get(_).unsafeToFuture().map(_.toRight(NotFound.toString())))
+      .description("Get info about tenant/landlord/user by id")
+
+  // Update Tenant or Landlord: PUT /api/user/{id}
+  private val updateUserEndpoint =
+    endpoint.patch
+      .in(basePath / "user" / path[Long]("id").description("User ID"))
+      .in(jsonBody[User])
+      .serverLogic[Future]((db.update _).tupled(_).unsafeToFuture().map(Right(_)))
+      .description("Update user info by id, changed phone number for example")
+
+  // List available buildings: GET /api/users?role=all
+  private val listUsersEndpoint =
+    endpoint.get
+      .in(basePath / "users")
+      .in(query[String]("role").default("all"))
+      .out(jsonBody[List[User]])
+      .errorOut(stringBody)
+      .serverLogic[Future](db.list(_).compile.toList.unsafeToFuture().map(Right(_)))
+      .description("Get list of users by role")
+
+  val allEndpoints =
+    List(addUserEndpoint, getUserEndpoint, updateUserEndpoint, listUsersEndpoint)
+}
+
 class Endpoints {
 
   private val info = Info(
@@ -99,31 +135,6 @@ class Endpoints {
 
   private val basePath = "api"
 //  val docsYaml: String = docs.toYaml
-
-  // Registration: POST /api/users
-  private val addUserEndpoint =
-    endpoint.post
-      .in(basePath / "users")
-      .in(jsonBody[User].description("Info for new user registration"))
-      .errorOut(stringBody)
-      .description("Create new user")
-
-  // Get Tenant or Landlord: GET /api/user/{id}
-  private val getUserEndpoint =
-    endpoint.get
-      .in(basePath / "user" / path[Long]("id").description("User ID"))
-//      .out(jsonBody[User])
-      .errorOut(stringBody)
-//      .serverLogic[Future] { _ => Future.successful(Right(())) }
-      .description("Get info about tenant/landlord/user by id")
-
-  // Update Tenant or Landlord: PUT /api/user/{id}
-  private val updateUserInfo =
-    endpoint.patch
-      .in(basePath / "user" / path[Long]("id").description("User ID"))
-      .in(jsonBody[User])
-      .errorOut(stringBody)
-      .description("Update user info by id, changed phone number for example")
 
   // Add Contract: POST /api/contracts
   private val newContractEndpoint =
@@ -160,18 +171,16 @@ class Endpoints {
   // List current contracts: GET /api/contracts
   private val listContractsEndpoint =
     endpoint.get
-      .in(
-        basePath / "contracts"
-          / query[Boolean]("active").default(true).description("Contracts active on current date")
-          / query[Long]("tenant").description("Filter by tenant id")
-      )
+      .in(basePath / "contracts")
+      .in(query[Boolean]("active").default(true).description("Contracts active on current date"))
+      .in(query[Option[Long]]("tenant").description("Filter by tenant id"))
       .out(jsonBody[List[Contract]])
       .errorOut(stringBody)
       .description("Get list of contracts")
 
   val allEndpoints = List(
 //    addUserEndpoint,
-    getUserEndpoint,
+//    getUserEndpoint,
 //    updateUserInfo,
 //    newPremiseEndpoint,
 //    getPremiseEndpoint,

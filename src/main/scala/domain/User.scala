@@ -10,7 +10,7 @@ case class User(
     email: String,
     phone: String,
     hash: String,
-    role: Role
+    role: String
 )
 
 object User {

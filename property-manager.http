@@ -1,3 +1,31 @@
+GET http://localhost:8080/api/users
+###
+GET http://localhost:8080/api/user/1
+###
+POST http://localhost:8080/api/users
+content-type: application/json
+
+{
+  "firstName": "Martin",
+  "lastName": "Odersky",
+  "email": "odersky@epfl.ch",
+  "phone": "+41216936863",
+  "hash": "password",
+  "role": "tenant"
+}
+###
+PATCH http://localhost:8080/api/user/1
+content-type: application/json
+
+{
+    "firstName": "John",
+    "lastName": "De Goes",
+    "email": "degoes@example.com",
+    "phone": "+792223322",
+    "hash": "password",
+    "role": "landlord"
+}
+###
 GET http://localhost:8080/api/premises/buildings
 ###
 GET http://localhost:8080/api/premises/buildings?addresslike=Ставрополь
@@ -17,9 +45,13 @@ content-type: application/json
     "advertisedPrice": 10000
 }
 ###
-GET http://localhost:8080/api/premises?isAvailable=true
+GET http://localhost:8080/api/premises?isavailable=true
 ###
-GET http://localhost:8080/api/premises?isAvailable=true&totalpricemax=11000
+GET http://localhost:8080/api/premises
 ###
-GET http://localhost:8080/api/premises/2
+GET http://localhost:8080/api/premises?areamin=18
+###
+GET http://localhost:8080/api/premises?isavailable=false&totalpricemax=11000
+###
+GET http://localhost:8080/api/premise/2
 ###

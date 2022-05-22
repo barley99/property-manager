@@ -8,7 +8,7 @@ import java.time.LocalDate
 final case class Contract(
     id: Option[Long],
     number: String,
-    tenant: User,
+    tenant: Long,
     agreementDate: LocalDate,
     startDate: LocalDate,
     endDate: LocalDate,
